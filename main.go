@@ -4,13 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
-	"strings"
-	"time"
 	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 var (
@@ -25,66 +25,71 @@ var (
 type Job struct {
 	curl string
 	regx *regexp.Regexp
-	url string
+	url  string
 }
 
-func worker(jobs <-chan Job) {
-    for j := range jobs {
+func worker(jobs <-chan Job, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	for j := range jobs {
 		// set command time limit
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeoutFlag) * time.Second)
-		defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(*timeoutFlag)*time.Second)
 
 		// execute the curl command
 		cmd := exec.CommandContext(ctx, "/bin/sh", "-c", j.curl)
 		stdout, err := cmd.Output()
+		cancel()
+
 		if err != nil {
 			fmt.Printf("error: %v - %v\n", j.url, err)
 		}
-	
+
 		// print if match
 		match := j.regx.MatchString(string(stdout))
 		if match {
 			fmt.Printf("match: %v\n", j.url)
 		}
-
-        time.Sleep(time.Millisecond) // this is prob. unessesaaryyy
-    }
+	}
 }
 
 func main() {
 	flag.Parse()
 
-	if *p1Flag == "" || *p1Flag == "" || *matchFlag == "" {
-		fmt.Println("\nfurl v0.0.1 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
+	if *p1Flag == "" || *p2Flag == "" || *matchFlag == "" {
+		fmt.Printf("\nfurl v0.0.2 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	// fetch first/left parts (p1)
-	content, err := ioutil.ReadFile(*p1Flag)
+	content, err := os.ReadFile(*p1Flag)
 	if err != nil {
 		fmt.Printf("error with the p1 wordlist: %v", err)
 		os.Exit(1)
 	}
 	p1 := strings.Split(string(content), "\n")
-	p1 = p1[:len(p1) - 1] // remove trailing newline
+	p1 = p1[:len(p1)-1] // remove trailing newline
 
 	// fetch second/right parts (p2)
-	content, err = ioutil.ReadFile(*p2Flag)
+	content, err = os.ReadFile(*p2Flag)
 	if err != nil {
 		fmt.Printf("error with the p2 wordlist: %v", err)
 		os.Exit(1)
 	}
 	p2 := strings.Split(string(content), "\n")
-	p2 = p2[:len(p2) - 1] // remove trailing newline
+	p2 = p2[:len(p2)-1] // remove trailing newline
 
 	// compile the regex match
 	regx := regexp.MustCompile(*matchFlag)
 
 	// prepare concurrency
 	jobs := make(chan Job, *threadsFlag)
+	var wg sync.WaitGroup
+
+	// start workers
 	for w := 1; w <= *threadsFlag; w++ {
-		go worker(jobs)
+		wg.Add(1)
+		go worker(jobs, &wg)
 	}
 
 	// start testing
@@ -99,9 +104,10 @@ func main() {
 			jobs <- Job{
 				curl: curl,
 				regx: regx,
-				url: v1 + v2,
+				url:  v1 + v2,
 			}
 		}
 	}
 	close(jobs)
+	wg.Wait()
 }
