@@ -15,8 +15,8 @@ import (
 )
 
 var (
-	matchFlag    = flag.String("match", "", "required - regex string (or hex pattern with -hexmatch)")
 	hexmatchFlag = flag.Bool("hexmatch", false, "treat -match as hex bytes (e.g. $'\\x1F\\x8B')")
+	matchFlag    = flag.String("match", "", "required - regex string (or hex pattern with -hexmatch)")
 	optionsFlag  = flag.String("options", "", "curl options, e.g. '-H \"Cookie: 1=1\" -x http://x'")
 	p1Flag       = flag.String("p1", "", "required - first/left parts, e.g. 'root urls'")
 	p2Flag       = flag.String("p2", "", "required - second/right parts, e.g. paths")
