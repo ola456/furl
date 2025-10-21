@@ -39,7 +39,7 @@ func worker(jobs <-chan Job, wg *sync.WaitGroup) {
 
 		// execute the curl command
 		cmd := exec.CommandContext(ctx, "/bin/sh", "-c", j.curl)
-		stdout, err := cmd.Output()
+		stdout, err := cmd.CombinedOutput()
 		cancel()
 
 		if err != nil {
@@ -51,7 +51,7 @@ func worker(jobs <-chan Job, wg *sync.WaitGroup) {
 		if *hexmatchFlag {
 			match = bytes.Contains(stdout, []byte(*matchFlag))
 		} else {
-			match = j.regx.MatchString(string(stdout))
+			match = j.regx.Match(stdout)
 		}
 		if match {
 			fmt.Printf("match: %v\n", j.url)
@@ -63,7 +63,7 @@ func main() {
 	flag.Parse()
 
 	if *p1Flag == "" || *p2Flag == "" || *matchFlag == "" {
-		fmt.Printf("\nfurl v0.0.3 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
+		fmt.Printf("\nfurl v0.0.4 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
 		flag.Usage()
 		os.Exit(1)
 	}
