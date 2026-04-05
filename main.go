@@ -63,10 +63,14 @@ func worker(jobs <-chan Job, wg *sync.WaitGroup) {
 }
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "\nfurl v0.0.5 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	if *p1Flag == "" || *p2Flag == "" || *matchFlag == "" {
-		fmt.Printf("\nfurl v0.0.4 - nothing but a dirty curl wrapper made for cluster bomb fuzzing (with 2 payloads)\n")
 		flag.Usage()
 		os.Exit(1)
 	}
