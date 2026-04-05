@@ -117,7 +117,7 @@ func main() {
 	for _, v2 := range p2 {
 		for _, v1 := range p1 {
 			// craft the curl command
-			curl := "curl -sS -kgi --path-as-is '" + v1 + v2 + "' -m " + timeoutStr
+			curl := "curl -sS -kgi --compressed --path-as-is '" + v1 + v2 + "' -m " + timeoutStr
 			if *optionsFlag != "" {
 				curl += " " + *optionsFlag
 			}
