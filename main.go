@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -22,6 +23,7 @@ var (
 	p2Flag       = flag.String("p2", "", "required - second/right parts, e.g. paths")
 	threadsFlag  = flag.Int("threads", 10, "concurrency/multithreading")
 	timeoutFlag  = flag.Int("timeout", 10, "request timeout limit")
+	verboseFlag  = flag.Bool("v", false, "print curl stderr and request errors")
 )
 
 type Job struct {
@@ -39,10 +41,11 @@ func worker(jobs <-chan Job, wg *sync.WaitGroup) {
 
 		// execute the curl command
 		cmd := exec.CommandContext(ctx, "/bin/sh", "-c", j.curl)
-		stdout, err := cmd.CombinedOutput()
+		cmd.Stderr = io.Discard
+		stdout, err := cmd.Output()
 		cancel()
 
-		if err != nil {
+		if err != nil && *verboseFlag {
 			fmt.Printf("error: %v - %v\n", j.url, err)
 		}
 
